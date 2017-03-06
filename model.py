@@ -11,28 +11,42 @@ from keras import models, optimizers, backend
 from sklearn.model_selection import train_test_split
 from sklearn.utils import shuffle
 
-# my files
+# external files
 from preprocess import load_samples
 import process
 
+# generator used to load images and also augment data
+# the generator takes an augment argument which will be true during training
+# and false during testing and validation
+#
+# When augmenting we randomly select a center, left or right image and
+# add a correction factor to the steeting
 def generator(samples, path, augment=True, batch_size=128):
     num_samples = len(samples)
     correction = [0, 0.2, -0.2]
-    f = open('training.log','w')
-    while 1: # Loop forever so the generator never terminates
+
+    while 1:
         shuffle(samples)
         for offset in range(0, num_samples, batch_size):
             batch_samples = samples[offset:offset+batch_size]
-
             images = []
             angles = []
+
+            # load images and angles
             for batch_sample in batch_samples:
+                # load the image (this step crops the image as well)
                 index = random.randint(0,2)
                 name = path + '/IMG/'+batch_sample[index].split('/')[-1]
                 image = process.loadImage(name)
+
+                # augment the data by creating shadows
                 if augment:
                     image = process.augmentImage(image)
+
+                # normalize the image
                 image = image / 255.0 - 0.5
+
+                # generate the angle and add correction
                 angle = float(batch_sample[3]) + correction[index]
 
                 images.append(image)
@@ -47,21 +61,13 @@ def generator(samples, path, augment=True, batch_size=128):
             X_train[indices] = X_train[indices, :, ::-1, :]
             y_train[indices] = -y_train[indices]
 
-            for i in range(0,len(X_train)):
-                angle = y_train[i]
-                if abs(angle) > 1.6:
-                    print("BAD ANGLE: ", angle)
-                    cv2.imwrite('bad.jpg', X_train[i])
-                f.write(str(angle) + "\n")
-                f.flush()
-
+            # send the batch to the trainer
             yield shuffle(X_train, y_train)
 
 
-# load and split data
-data_path = '/home/rrodriguez/track1'
+# load and split data into training set and validation set
 data_path = 'data'
-samples = load_samples(data_path, 'driving_log_processed.csv')
+samples = load_samples(data_path, 'driving_log.csv')
 train_samples, validation_samples = train_test_split(samples, test_size=0.2)
 
 # compile and train the model using the generator function
@@ -96,4 +102,6 @@ model.fit_generator(train_generator,
 
 model.save('model.h5')
 
+# was giving an error when exiting, this makes sure that all TF sessions are
+# closed before attempting to exit
 backend.clear_session()
