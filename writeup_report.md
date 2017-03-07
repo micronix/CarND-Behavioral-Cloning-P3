@@ -7,6 +7,34 @@ The goals / steps of this project are the following:
 * Test that the model successfully drives around track one without leaving the road
 * Summarize the results with a written report
 
+[//]: # (Image References)
+
+[track1]: ./images/track1.jpg "Center"
+[track2]: ./images/track2.jpg "Center"
+[recovery1]: ./images/track1-recovery1.jpg "Recovery"
+[recovery2]: ./images/track1-recovery2.jpg "Recovery"
+[recovery3]: ./images/track1-recovery3.jpg "Recovery"
+[recovery4]: ./images/track2-recovery1.jpg "Recovery"
+[recovery5]: ./images/track2-recovery2.jpg "Recovery"
+[recovery6]: ./images/track2-recovery3.jpg "Recovery"
+[track1-processed]: ./images/track1-processed.jpg "Center"
+[track2-processed]: ./images/track2-processed.jpg "Center"
+[recovery1-processed]: ./images/track1-recovery1-processed.jpg "Recovery"
+[recovery2-processed]: ./images/track1-recovery2-processed.jpg "Recovery"
+[recovery3-processed]: ./images/track1-recovery3-processed.jpg "Recovery"
+[recovery4-processed]: ./images/track2-recovery1-processed.jpg "Recovery"
+[recovery5-processed]: ./images/track2-recovery2-processed.jpg "Recovery"
+[recovery6-processed]: ./images/track2-recovery3-processed.jpg "Recovery"
+[track1-cropped]: ./images/track1-cropped.jpg "Center"
+[track2-cropped]: ./images/track2-cropped.jpg "Center"
+[recovery1-cropped]: ./images/track1-recovery1-cropped.jpg "Recovery"
+[recovery2-cropped]: ./images/track1-recovery2-cropped.jpg "Recovery"
+[recovery3-cropped]: ./images/track1-recovery3-cropped.jpg "Recovery"
+[recovery4-cropped]: ./images/track2-recovery1-cropped.jpg "Recovery"
+[recovery5-cropped]: ./images/track2-recovery2-cropped.jpg "Recovery"
+[recovery6-cropped]: ./images/track2-recovery3-cropped.jpg "Recovery"
+[video1]: ./video.mp4 "Video"
+
 
 ## Rubric Points
 ### Here I will consider the [rubric points](https://review.udacity.com/#!/rubrics/432/view) individually and describe how I addressed each point in my implementation.
@@ -18,6 +46,8 @@ The goals / steps of this project are the following:
 
 My project includes the following files:
 * model.py containing the script to create and train the model
+* process.py contains methods for augmenting data and loading images
+* preprocess.py contains code for removing extra data from the training set
 * drive.py for driving the car in autonomous mode
 * model.h5 containing a trained convolution neural network
 * writeup_report.md summarizing the results
@@ -32,89 +62,131 @@ python drive.py model.h5
 
 The model.py file contains the code for training and saving the convolution neural network. The file shows the pipeline I used for training and validating the model, and it contains comments to explain how the code works.
 
-###Model Architecture and Training Strategy
+Assuming that the training data is in folder data in the current directory the model can be trained using:
 
-####1. An appropriate model arcthiecture has been employed
+```sh
+python model.py
+```
+
+### Model Architecture and Training Strategy
+
+#### 1. An appropriate model arcthiecture has been employed
 
 
-My model consists of a convolution neural network with 3x3 filter sizes and depths between 32 and 128 (model.py lines 18-24)
+My model is described on lines 80-94 of model.py and it is inspired by the NVidia self driving car paper. The convolution layers are:
 
-The model includes RELU layers to introduce nonlinearity (code line 20), and the data is normalized in the model using a Keras lambda layer (code line 18).
+| Layer | Filter Size | Depth |
+|-------|-------------|-------|
+|   1   |   5x5       |  24   |
+|   2   |   5x5       |  36   |
+|   3   |   3x3       |  48   |
+|   4   |   3x3       |  64   |
 
-####2. Attempts to reduce overfitting in the model
+Each of the convolution layers have RELU activation to introduce nonlinearity and there is max pooling between each of the layers with a filter size of 2x2.
 
-The model contains dropout layers in order to reduce overfitting (model.py lines 21).
+After that there is are 3 fully connected layers each with 500, 100 and 20 neurons each and RELU activation units between each layer.
 
-The model was trained and validated on different data sets to ensure that the model was not overfitting (code line 10-16). The model was tested by running it through the simulator and ensuring that the vehicle could stay on the track.
+To avoid overfitting I added dropout layers between each of these fully connected layers.
 
-####3. Model parameter tuning
+#### 2. Attempts to reduce overfitting in the model
 
-The model used an adam optimizer, so the learning rate was not tuned manually (model.py line 25).
+I used dropout layers in order to avoid overfitting. The model was also trained with a training set and a validation model was used.
 
-####4. Appropriate training data
+The model was trained for a total of 30 epochs. After that the error in the validation set did not really go down any more.
 
-Training data was chosen to keep the vehicle driving on the road. I used a combination of center lane driving, recovering from the left and right sides of the road ...
+The validation and training tests are defined in line 71 and training and validation generators are defined in line 74 and 75.
+
+The model was tested by running it through the simulator and ensuring that the vehicle could stay on the track. I made the vehicle cross the bridge 3 times to ensure that it could go around the track. I did have some issues initially trying to run it in my computer. It is an old laptop without a video car so my model was overshooting because the was some lag in the images the simulator was sending. My car would start to oscillate left and right faster and faster.
+
+I solved this issue by selecting "fastest" from the simulator graphics options and slownig the speed of the car to 9. I believe that my model could probably do better if tested on a faster machine.
+
+#### 3. Model parameter tuning
+
+The model used an adam optimizer, so the learning rate was not tuned manually (model.py line 96).
+
+#### 4. Appropriate training data
+
+To collect the data I drove the car around the track using the arrow keys. I believe probably driving with the mouse would have been better. My hypothesis is that when you are not pressing the keys, the steering angle is 0. While driving with the arrow keys there were long streches where I would not press the keys then pressed then for less than a second just making small corrections. I imagine that the binary nature of key pressing doesn't translate well to creating smooth data.
 
 For details about how I created the training data, see the next section.
 
-###Model Architecture and Training Strategy
+### Model Architecture and Training Strategy
 
-####1. Solution Design Approach
+#### 1. Solution Design Approach
 
-The overall strategy for deriving a model architecture was to ...
+The overall strategy for deriving a model architecture was to get inspiration from the lenet model and to emulate the Nvidia model. My intution is that the images in our track are less complex than what the Nvidia model had so I could make a simpler model.
 
-My first step was to use a convolution neural network model similar to the ... I thought this model might be appropriate because ...
+Initially I tried to use the full size of the Nvidia network, however it was taking incredibly long to train and my training program was crashing. I devided to simplify my network and have only 2 Convolutional layers instead of 4. However, the although the training data had a low mse, the validation set still had a relatively high mse. I think that with a relatively simple architecture it was easy to overfit quickly.
 
-In order to gauge how well the model was working, I split my image and steering angle data into a training and validation set. I found that my first model had a low mean squared error on the training set but a high mean squared error on the validation set. This implied that the model was overfitting.
+Another reason for the quick overfitting is that I did not have enough data to generalize well. I would go back and gather more driving data then train again.
 
-To combat the overfitting, I modified the model so that ...
+I went back to 4 layers but added pooling layers to reduce the number of parameters in my network. A pooling layer downsamples the output of the previous layer. I also added dropout layers to prevent overfitting.
 
-Then I ...
+In the example writeup report they describe the same problem I was having with my car. My graphics were probably set too high. My car would start driving correctly but would overshoot on the angle. This would start to grow and eventually would drive off the road. I found out that the graphics might have been set too high for my computer. I adjusted for that and also decreased the driving speed to 9. That seemed to work and my car was able to drive a few times around track 1.
 
-The final step was to run the simulator to see how well the car was driving around track one. There were a few spots where the vehicle fell off the track... to improve the driving behavior in these cases, I ....
+#### 2. Final Model Architecture
 
-At the end of the process, the vehicle is able to drive autonomously around the track without leaving the road.
+The final model architecture (model.py lines 79-95) consisted of a convolution neural network with the following layers and layer sizes:
 
-At first I was having problems with my car driving. It would start driving correctly but would overshoot on the angle. This would start to grow and eventually would drive off the road. I found out that the graphics might have been set too high for my computer. After adjusting for that, the car was able to drive one lap on track 1 and was able to reach the end of track 2.
+Here is a description of my network
 
-####2. Final Model Architecture
+| Layer | Type | Description |
+| ------|------|-------------|
+|  1   | Conv | filter: 5x5 depth: 24  with RELU|
+|  2   | MaxPool | filter: 2x2 |
+|  3   | Conv | filter: 5x5 depth: 36 with RELU|
+|  4   | MaxPool | filter: 2x2 |
+|  5   | Conv | filter: 3x3 depth: 48 with RELU|
+|  6   | MaxPool | filter: 2x2 |
+|  7   | Conv | filter: 3x3 depth: 64 with RELU|
+|  8   | MaxPool | filter: 2x2 |
+| 9    | Fully Connected| 500 with RELU |
+| 10    | Fully Connected| 100 with RELU |
+| 11    | Fully Connected| 20 with RELU |
+| 12    | Output | 1 output |
 
-The final model architecture (model.py lines 18-24) consisted of a convolution neural network with the following layers and layer sizes ...
+#### 3. Creation of the Training Set & Training Process
 
-Here is a visualization of the architecture (note: visualizing the architecture is optional according to the project rubric)
+I first captured good driving behavior by driving in the center of the track several times on track 1 and track 2. Here are two examples.
 
-![alt text][image1]
+![alt text][track1]
+![alt text][track2]
 
-####3. Creation of the Training Set & Training Process
+I also captured a few recoery phases from the edge of the road to get back to the center. Driving in game is not my strength so in addition to that there were a few times where I would overshoot and also have to recover durin ga normal drive. Here are a few examples of that:
 
-To capture good driving behavior, I first recorded two laps on track one using center lane driving. Here is an example image of center lane driving:
+![alt text][recovery1]
+![alt text][recovery2]
+![alt text][recovery3]
+![alt text][recovery4]
+![alt text][recovery5]
+![alt text][recovery6]
 
-![alt text][image2]
+I augmented the images by flipping vertically and randomly generating a shadow. Here are examples of such a procedure:
 
-I then recorded the vehicle recovering from the left side and right sides of the road back to center so that the vehicle would learn to .... These images show what a recovery looks like starting from ... :
+![alt text][track1-processed]
+![alt text][track2-processed]
+![alt text][recovery1-processed]
+![alt text][recovery2-processed]
+![alt text][recovery3-processed]
+![alt text][recovery4-processed]
+![alt text][recovery5-processed]
+![alt text][recovery6-processed]
 
-![alt text][image3]
-![alt text][image4]
-![alt text][image5]
+I also cropped the images here are the images cropped:
 
-Then I repeated this process on track two in order to get more data points.
+![alt text][track1-cropped]
+![alt text][track2-cropped]
+![alt text][recovery1-cropped]
+![alt text][recovery2-cropped]
+![alt text][recovery3-cropped]
+![alt text][recovery4-cropped]
+![alt text][recovery5-cropped]
+![alt text][recovery6-cropped]
 
-To augment the data sat, I also flipped images and angles thinking that this would ... For example, here is an image that has then been flipped:
-
-![alt text][image6]
-![alt text][image7]
-
-Etc ....
-
+## Add processing here if we removed the majority of zeros
 After the collection process, I had X number of data points. I then preprocessed this data by ...
 
 
 I finally randomly shuffled the data set and put Y% of the data into a validation set.
 
 I used this training data for training the model. The validation set helped determine if the model was over or under fitting. The ideal number of epochs was Z as evidenced by ... I used an adam optimizer so that manually training the learning rate wasn't necessary.
-
-
-
-#### Notebook
-- split dataset into 80% training data & 20% validation data using sklearn.train_test_split
--
