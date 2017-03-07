@@ -47,7 +47,7 @@ def generator(samples, path, augment=True, batch_size=128):
                 #image = image / 255.0 - 0.5
 
                 # generate the angle and add correction
-                angle = float(batch_sample[3])# + correction[index]
+                angle = float(batch_sample[1])# + correction[index]
 
                 images.append(image)
                 angles.append(angle)
@@ -68,7 +68,7 @@ def generator(samples, path, augment=True, batch_size=128):
 # load and split data into training set and validation set
 #data_path = 'data'
 data_path = '/home/rrodriguez/data'
-samples = load_samples(data_path, 'driving_log_processed.csv')
+samples = load_aug(data_path, 'driving_log_processed.csv')
 train_samples, validation_samples = train_test_split(samples, test_size=0.2)
 
 # compile and train the model using the generator function

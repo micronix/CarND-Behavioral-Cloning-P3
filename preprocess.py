@@ -15,6 +15,17 @@ def load_samples(path, filename='driving_log.csv'):
             samples.append(line)
     return samples
 
+
+def load_aug(path, filename='driving_log_aug.csv'):
+    samples = []
+    with open(os.path.join(path,filename)) as csvfile:
+        reader = csv.reader(csvfile)
+        next(reader, None)
+        for line in reader:
+            samples.append(line)
+    return samples
+
+
 # remove a percentage of zeros and save into a new file
 def preprocess(path, zeros_left, infile='driving_log.csv', outfile='driving_log_processed.csv'):
     samples = load_samples(path, infile)
