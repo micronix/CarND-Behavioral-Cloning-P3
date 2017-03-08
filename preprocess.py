@@ -76,14 +76,11 @@ def augmentData(path, infile='driving_log_processed.csv', outfile='driving_log_a
             for entry in entries:
                 writer.writerow(entry)
 
-
-
-
 def visualize(path, filename='driving_log.csv'):
     samples = load_samples(path, filename)
-    values = [ float(sample[3]) for sample in samples]
-    zeros = [ float(sample[3]) for sample in samples if float(sample[3]) == 0]
-    non = [ float(sample[3]) for sample in samples if float(sample[3]) != 0]
+    values = [ float(sample[1]) for sample in samples]
+    zeros = [ float(sample[1]) for sample in samples if float(sample[1]) == 0]
+    non = [ float(sample[1]) for sample in samples if float(sample[1]) != 0]
     print("Zeros:", len(zeros))
     print("Non-Zero:", len(non))
     print("Total: ", len(values))
@@ -94,7 +91,7 @@ def visualize(path, filename='driving_log.csv'):
 if __name__ == '__main__':
     data_path = '/home/rrodriguez/data2'
     #data_path = 'data'
-    preprocess(data_path, 0.05)
-    augmentData(data_path)
+    #preprocess(data_path, 0.05)
+    #augmentData(data_path)
     visualize(data_path, 'driving_log_aug.csv')
-    visualize(data_path)
+    #visualize(data_path)
